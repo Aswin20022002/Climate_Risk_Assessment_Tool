@@ -1,5 +1,5 @@
 """
-India Physical Risk Explorer - OPTIMIZED VERSION
+India Physical Risk Explorer - FINAL STABLE VERSION
 """
 
 import streamlit as st
@@ -10,7 +10,6 @@ import json
 import numpy as np
 import math
 import os
-import geopandas as gpd  # Added for high-speed loading
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE CONFIG
@@ -26,7 +25,8 @@ st.set_page_config(
 # FILE PATHS
 # ─────────────────────────────────────────────────────────────────────────────
 BASE_CSV     = "India_Pincode_Boundary_with_LatLong_and_Shape_2022.csv"
-GEOJSON_FILE = "india_pincodes_tiny.geojson" # Matches your upload
+# IMPORTANT: Make sure this matches the filename you uploaded to GitHub!
+GEOJSON_FILE = "india_pincodes_tiny.geojson" 
 
 SCORE_FILES = {
     "cyclone":  {"file": "precomputed_cyclone_scores.csv",  "col": "cyclone_score",  "label": "Cyclone",  "icon": "🌀"},
@@ -156,16 +156,19 @@ def load_scores():
 
 @st.cache_data(show_spinner="Loading spatial data…")
 def load_and_index_geojson():
+    # Use the variable defined at the top of the script
     if not os.path.exists(GEOJSON_FILE):
-        st.error(f"Critical Error: {GEOJSON_FILE} not found!")
+        st.error(f"Critical Error: {GEOJSON_FILE} not found in your GitHub repo!")
         return None, {}
 
     try:
-        # HIGH SPEED LOAD using geopandas
-        gdf = gpd.read_file(GEOJSON_FILE)
-        features = json.loads(gdf.to_json())["features"]
+        # Use standard json loading to avoid GDAL/Fiona installation errors
+        with open(GEOJSON_FILE, "r") as f:
+            gj = json.load(f)
         
+        features = gj["features"]
         pin_to_indices = {}
+        
         for i, feat in enumerate(features):
             pin = feat["properties"].get("pin_code")
             if pin:
