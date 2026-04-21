@@ -3,7 +3,3 @@ pandas
 folium
 streamlit-folium
 numpy
-geopandas
-fiona
-pyproj
-shapely
