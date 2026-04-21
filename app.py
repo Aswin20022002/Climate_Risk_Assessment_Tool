@@ -298,9 +298,10 @@ def render(pin_str, base_df, scores_df, loaded_hazards, features, pin_to_indices
                     """, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown('<h1 style="margin-bottom:0.25rem;">India Physical Risk Explorer</h1><p style="color:#6b7280;margin-top:0;margin-bottom:1.5rem;">Enter any 6-digit PIN code to view risk.</p>', sampled=False, unsafe_allow_html=True)
+st.markdown('<h1 style="margin-bottom:0.25rem;">India Physical Risk Explorer</h1><p style="color:#6b7280;margin-top:0;margin-bottom:1.5rem;">Enter any 6-digit PIN code to view risk.</p>', unsafe_allow_html=True)
 
 # Load data
 base_df = load_base_csv()
@@ -318,5 +319,7 @@ if pin_in:
     if not pin_in.isdigit() or len(pin_in) != 6:
         st.warning("Please enter exactly 6 digits.")
     else:
+        st.divider()
+        render(pin_in.zfill(6), base_df, scores_df, loaded_hazards, features, pin_to_indices)
         st.divider()
         render(pin_in.zfill(6), base_df, scores_df, loaded_hazards, features, pin_to_indices)
