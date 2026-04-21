@@ -1,9 +1,8 @@
-streamlit>=1.32.0
-pandas>=2.0.0
-folium>=0.16.0
-streamlit-folium>=0.20.0
-numpy>=1.26.0
-ijson>=3.2.3
+streamlit
+pandas
+folium
+streamlit-folium
+numpy
 geopandas
 fiona
 pyproj
