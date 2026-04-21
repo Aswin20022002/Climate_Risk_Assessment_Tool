@@ -1,5 +1,5 @@
 """
-India Physical Risk Explorer - FINAL STABLE VERSION
+India Physical Risk Explorer - FINAL STABLE VERSION (With Robust PIN Matching)
 """
 
 import streamlit as st
@@ -25,7 +25,6 @@ st.set_page_config(
 # FILE PATHS
 # ─────────────────────────────────────────────────────────────────────────────
 BASE_CSV     = "India_Pincode_Boundary_with_LatLong_and_Shape_2022.csv"
-# IMPORTANT: Make sure this matches the filename you uploaded to GitHub!
 GEOJSON_FILE = "india_pincodes_tiny.geojson" 
 
 SCORE_FILES = {
@@ -78,7 +77,13 @@ JUSTIFICATIONS = {
 # HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 def norm_pin(val):
-    return str(val).strip().zfill(6)
+    """Robustly convert any PIN format (float, int, string) to a 6-digit string."""
+    if pd.isna(val): return ""
+    # Convert to string, remove '.0' if it exists, strip spaces, and pad with zeros
+    s = str(val).strip()
+    if s.endswith('.0'):
+        s = s[:-2]
+    return s.zfill(6)
 
 def find_pin_col(df):
     for c in df.columns:
@@ -137,7 +142,10 @@ def load_scores():
             df = pd.read_csv(cfg["file"], low_memory=False)
             pin_col = find_pin_col(df)
             if not pin_col: continue
+            
+            # Use the robust norm_pin function here
             df["_pin"] = df[pin_col].apply(norm_pin)
+            
             want = cfg["col"]
             if want in df.columns:
                 score_col = want
@@ -146,6 +154,7 @@ def load_scores():
                 candidates = [c for c in df.columns if kw in c.lower() or "score" in c.lower()]
                 if not candidates: continue
                 score_col = candidates[0]
+            
             df[want] = pd.to_numeric(df[score_col], errors="coerce")
             subset = df[["_pin", want]].drop_duplicates("_pin")
             merged = subset if merged is None else merged.merge(subset, on="_pin", how="outer")
@@ -156,13 +165,11 @@ def load_scores():
 
 @st.cache_data(show_spinner="Loading spatial data…")
 def load_and_index_geojson():
-    # Use the variable defined at the top of the script
     if not os.path.exists(GEOJSON_FILE):
         st.error(f"Critical Error: {GEOJSON_FILE} not found in your GitHub repo!")
         return None, {}
 
     try:
-        # Use standard json loading to avoid GDAL/Fiona installation errors
         with open(GEOJSON_FILE, "r") as f:
             gj = json.load(f)
         
@@ -172,7 +179,9 @@ def load_and_index_geojson():
         for i, feat in enumerate(features):
             pin = feat["properties"].get("pin_code")
             if pin:
-                pin_to_indices.setdefault(pin, []).append(i)
+                # Ensure the GeoJSON pin matches the normalized format
+                norm_p = norm_pin(pin)
+                pin_to_indices.setdefault(norm_p, []).append(i)
                 
         return features, pin_to_indices
     except Exception as e:
@@ -291,7 +300,7 @@ def render(pin_str, base_df, scores_df, loaded_hazards, features, pin_to_indices
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown('<h1 style="margin-bottom:0.25rem;">India Physical Risk Explorer</h1><p style="color:#6b7280;margin-top:0;margin-bottom:1.5rem;">Enter any 6-digit PIN code to view risk.</p>', unsafe_allow_html=True)
+st.markdown('<h1 style="margin-bottom:0.25rem;">India Physical Risk Explorer</h1><p style="color:#6b7280;margin-top:0;margin-bottom:1.5rem;">Enter any 6-digit PIN code to view risk.</p>', sampled=False, unsafe_allow_html=True)
 
 # Load data
 base_df = load_base_csv()
